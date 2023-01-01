@@ -5,6 +5,7 @@ import { GastoModule } from './gasto/gasto.module';
 import { PresupuestoModule } from './presupuesto/presupuesto.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { UsuarioModule } from './usuario/usuario.module';
+import { CommonModule } from './common/common.module';
 
 
 @Module({
@@ -17,7 +18,8 @@ import { UsuarioModule } from './usuario/usuario.module';
 
     GastoModule,
     PresupuestoModule,
-    UsuarioModule
+    UsuarioModule,
+    CommonModule
   ],
   controllers: [],
   providers: [],

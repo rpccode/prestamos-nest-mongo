@@ -1,37 +1,33 @@
 import { Injectable } from '@nestjs/common';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
-import { Model } from 'mongoose';
+import { Model, isValidObjectId } from 'mongoose';
 import { Usuario } from './entities/usuario.entity';
 import { InjectModel } from '@nestjs/mongoose';
-import { BadRequestException, InternalServerErrorException } from '@nestjs/common/exceptions';
+import { BadRequestException, InternalServerErrorException, NotFoundException } from '@nestjs/common/exceptions';
 
 @Injectable()
 export class UsuarioService {
 
-   
-    constructor(
-      @InjectModel( Usuario.name )
-      private readonly UsuarioModel: Model<Usuario>
-    ){}
+
+  constructor(
+    @InjectModel(Usuario.name)
+    private readonly UsuarioModel: Model<Usuario>
+  ) { }
 
 
- async create(createUsuarioDto: CreateUsuarioDto) {
-       
-      try {
+  async create(createUsuarioDto: CreateUsuarioDto) {
 
-        const usuario = await this.UsuarioModel.create( createUsuarioDto );
-        return usuario
-        console.log(createUsuarioDto)
+    try {
+
+      const usuario = await this.UsuarioModel.create(createUsuarioDto);
+      return usuario
 
 
-      } catch (error) {
-        console.log(error)
-        if( error.code === 11000 ){
-          throw new BadRequestException(`EL Usuario ya Existe en la base de datos ${ JSON.stringify( error.keyValue )}`)
-        }
-        throw new InternalServerErrorException('No se Pudo crear el usuario - Verifique los log del servidor para mayor informacio ')
-      }
+
+    } catch (error) {
+      this.handleExceptions(error)
+    }
 
   }
 
@@ -39,15 +35,57 @@ export class UsuarioService {
     return `This action returns all usuario`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} usuario`;
+  async findOne(id: string) {
+
+    let usuario: Usuario;
+
+    if (!usuario && isValidObjectId(id)) {
+      usuario = await this.UsuarioModel.findById(id)
+    }
+
+    if (!usuario) {
+      usuario = await this.UsuarioModel.findOne({ Email: id.trim() })
+    }
+
+    if (!usuario) throw new NotFoundException(`Usuario no encontrado con este ${id}`)
+
+    return usuario
   }
 
-  update(id: number, updateUsuarioDto: UpdateUsuarioDto) {
-    return `This action updates a #${id} usuario`;
+  async update(id: string, updateUsuarioDto: UpdateUsuarioDto) {
+
+    try {
+
+
+      const usuario = await this.UsuarioModel.findByIdAndUpdate(id, updateUsuarioDto, { new: true })
+
+      return usuario
+
+    } catch (error) {
+      this.handleExceptions(error)
+    }
+
+
+
+    return
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} usuario`;
+  async remove(_id: string) {
+
+
+    const { deletedCount } = await this.UsuarioModel.deleteOne({ _id })
+    if (deletedCount === 0) {
+      throw new BadRequestException(`EL Usuario no Existe en la base de datos `)
+      return;
+
+    }
+  }
+
+  private handleExceptions(error: any) {
+    if (error.code === 11000) {
+      throw new BadRequestException(`EL Usuario ya Existe en la base de datos ${JSON.stringify(error.keyValue)}`)
+    }
+    throw new InternalServerErrorException('No se Pudo Modificar el usuario - Verifique los log del servidor para mayor informacio ')
+
   }
 }
